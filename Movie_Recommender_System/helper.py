@@ -1,6 +1,6 @@
 import tmdbsimple as tmdb
 
-tmdb.API_KEY = 'b4f4e5073f49c9bba30dd68659314a41'
+tmdb.API_KEY = f'{api_key}'
 
 def movie_meta_data(movie_id):
     try:
