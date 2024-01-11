@@ -67,7 +67,28 @@ if btn:
         recommendations = recommend_parallel(selected_movie, df, similarity)
 
     if recommendations:
-        st.success("Top 5 Recommended Movies:")
+        index_selected_movie=df[df['title'] == selected_movie]['movie_id'].iloc[0]
+        title1, summary1, movie_poster1, youtube_trailer_url1, genre_text1, rating1 = movie_meta_data(index_selected_movie)
+
+        st.info(f'Selected Movie - {selected_movie}')
+        c1,c2=st.columns(2)
+        with c1:
+            if movie_poster1:
+                st.markdown(f'<img src="{movie_poster1}" style="width: 160px; height:200px;border-radius: 10%;">', unsafe_allow_html=True)
+        with c2:    
+            if rating1:
+                st.markdown(f"**Rating** - :star2: {round(rating1, 1)}")
+    
+            if genre_text1:
+                st.write(f"Genre - {genre_text1}")
+            
+            if summary1:
+                st.write(f"Summary - {summary1}")
+
+        st.write(" ")
+        st.success(f"Top 5 Recommended Movies are --")
+
+            
         for movie_id in recommendations:
             try:
                 movie_info = movie_meta_data(movie_id)
@@ -90,7 +111,7 @@ if btn:
                             if title:
                                 st.markdown(f"<h5><b>{title}</b></h5>", unsafe_allow_html=True)
                             if rating:
-                                st.markdown(f"**IMDB Rating** - :star2: {round(rating, 1)}")
+                                st.markdown(f"**Rating** - :star2: {round(rating, 1)}")
                             if genre_text:
                                 st.markdown(f"<h6>Genre - {genre_text}</h6>", unsafe_allow_html=True)
                             if summary:
