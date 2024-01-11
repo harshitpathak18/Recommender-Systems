@@ -7,32 +7,40 @@ from streamlit_player import st_player
 from concurrent.futures import ThreadPoolExecutor
 from helper import movie_meta_data, director_meta_data, cast_meta_data
 
+# Suppress warnings
 warnings.filterwarnings('ignore')
 
+# Set Streamlit page configuration
 st.set_page_config(layout="wide")
 
 # Lazy load DataFrame from CSV file
 @st.cache_resource
 def load_data():
+    # Load preprocessed data from CSV file
     df = pd.read_csv('25K_movies_preprocessed.csv', usecols=['title', 'movie_id'])
+    # Get unique movie titles
     movie_list = df['title'].unique().tolist()
     return df, movie_list
 
 # Lazy load similarity scores
 @st.cache_resource
 def load_similarity_scores():
+    # Load precomputed similarity scores using TF-IDF
     similarity = pickle.load(open('similarity_with_5000_tfidf.pkl', 'rb'))
     return similarity
 
-similarity = load_similarity_scores()  
+# Ensure similarity scores are loaded
+similarity = load_similarity_scores()
+
 def recommend_parallel(movie, df, similarity, batch_size=1000):
     try:
+        # Get the index of the selected movie
         index = df[df['title'] == movie].index[0]
 
         # Calculate the number of batches
         num_batches = len(similarity[index]) // batch_size + 1
 
-        # Process similarity matrix in batches
+        # Process similarity matrix in batches using parallel execution
         recommended_movies = []
         with ThreadPoolExecutor() as executor:
             for batch_num in range(num_batches):
@@ -49,16 +57,19 @@ def recommend_parallel(movie, df, similarity, batch_size=1000):
         st.warning("Movie not found in the dataset.")
         return []
 
-
+# Streamlit application starts here
 st.title("Movie Recommender System")
 
-df, movie_list = load_data()  # Ensure data is loaded
+# Load data and get unique movie titles
+df, movie_list = load_data()
 
+# Dropdown to select a movie
 selected_movie = st.selectbox(
     "Type or select a movie from the dropdown",
     movie_list
 )
 
+# Button to trigger movie recommendations
 btn = st.button("Suggest Movie")
 
 # Update the button click section
@@ -67,30 +78,30 @@ if btn:
         recommendations = recommend_parallel(selected_movie, df, similarity)
 
     if recommendations:
-        index_selected_movie=df[df['title'] == selected_movie]['movie_id'].iloc[0]
+        # Display information about the selected movie
+        index_selected_movie = df[df['title'] == selected_movie]['movie_id'].iloc[0]
         title1, summary1, movie_poster1, youtube_trailer_url1, genre_text1, rating1 = movie_meta_data(index_selected_movie)
 
         st.info(f'Selected Movie - {selected_movie}')
-        c1,c2=st.columns(2)
+        c1, c2 = st.columns(2)
         with c1:
             if movie_poster1:
+                # Display the movie poster
                 st.markdown(f'<img src="{movie_poster1}" style="width: 160px; height:200px;border-radius: 10%;">', unsafe_allow_html=True)
         with c2:    
             if rating1:
                 st.markdown(f"**Rating** - :star2: {round(rating1, 1)}")
-    
             if genre_text1:
                 st.write(f"Genre - {genre_text1}")
-            
             if summary1:
                 st.write(f"Summary - {summary1}")
 
         st.write(" ")
         st.success(f"Top 5 Recommended Movies are --")
 
-            
         for movie_id in recommendations:
             try:
+                # Get detailed information about each recommended movie
                 movie_info = movie_meta_data(movie_id)
 
                 if movie_info:
@@ -105,10 +116,11 @@ if btn:
                         col1, col2 = st.columns(2)
                         with col1:
                             if movie_poster:
+                                # Display the movie poster in the details tab
                                 st.markdown(f'<img src="{movie_poster}" style="height: 600px; border-radius: 10%;">', unsafe_allow_html=True)
-
                         with col2:
                             if title:
+                                # Display movie details such as title, rating, genre, and summary
                                 st.markdown(f"<h5><b>{title}</b></h5>", unsafe_allow_html=True)
                             if rating:
                                 st.markdown(f"**Rating** - :star2: {round(rating, 1)}")
@@ -118,9 +130,11 @@ if btn:
                                 st.markdown(f"<h5><b>Summary-</b></h5> {summary}", unsafe_allow_html=True)
 
                             if cast:
-                                st.subheader("Cast:")
+                                st.write(" ")
+                                st.markdown(f"<h5><b>Cast-</b></h5>", unsafe_allow_html=True)
                                 col1, col2, col3, col4, col5 = st.columns(5)
 
+                                # Display the top 5 cast members
                                 cast1 = cast[0]
                                 cast2 = cast[1]
                                 cast3 = cast[2]
@@ -130,39 +144,26 @@ if btn:
                                 with col1:
                                     st.markdown(f'<img src="{cast1["profile_url"]}" style="width: 70px; border-radius: 20%;">', unsafe_allow_html=True)
                                     st.markdown(f"<b>{cast1['name']}</b> <br> {cast1['character'].split('/')[0]}", unsafe_allow_html=True)
-
                                 with col2:
                                     st.markdown(f'<img src="{cast2["profile_url"]}" style="width: 70px; border-radius: 20%;">', unsafe_allow_html=True)
                                     st.markdown(f"<b>{cast2['name']}</b> <br> {cast2['character'].split('/')[0]}", unsafe_allow_html=True)
-
                                 with col3:
                                     st.markdown(f'<img src="{cast3["profile_url"]}" style="width: 70px; border-radius: 20%;">', unsafe_allow_html=True)
                                     st.markdown(f"<b>{cast3['name']}</b> <br> {cast3['character'].split('/')[0]}", unsafe_allow_html=True)
-
                                 with col4:
                                     st.markdown(f'<img src="{cast4["profile_url"]}" style="width: 70px; border-radius: 20%;">', unsafe_allow_html=True)
                                     st.markdown(f"<b>{cast4['name']}</b> <br> {cast4['character'].split('/')[0]}", unsafe_allow_html=True)
-
                                 with col5:
                                     st.markdown(f'<img src="{cast5["profile_url"]}" style="width: 70px; border-radius: 20%;">', unsafe_allow_html=True)
                                     st.markdown(f"<b>{cast5['name']}</b> <br> {cast5['character'].split('/')[0]}", unsafe_allow_html=True)
      
-
                         with tab2:
+                            # Display trailer in the second tab
                             st.subheader(f"Trailer - {title}")
                             st_player(youtube_trailer_url)
-                            # Display director information
-                            # if director:
-                            #     st.markdown(f"<h5><b>Director-</b></h5>", unsafe_allow_html=True)
-                            #     if director[1]:
-                            #         st.markdown(f'<img src="{director[1]}" style="width: 70px; border-radius: 20%;">', unsafe_allow_html=True)
-                            #     if director[0]:
-                            #         st.markdown(f"<b>{director[0]}</b>", unsafe_allow_html=True)
-                else:
-                    st.warning("Movie details not available.")
             except Exception as e:
+                # Handle exceptions and display a warning
                 st.warning(f"An error occurred: {str(e)}")
-
        
     else:
         st.warning("No recommendations available.")
